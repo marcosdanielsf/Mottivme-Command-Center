@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { AppSidebar } from "./components/app-sidebar"
-import { PageRouter } from "./components/page-router"
+import { AppSidebar } from "@/components/app-sidebar"
+import { PageRouter } from "@/components/page-router"
 import { SidebarProvider } from "@/components/ui/sidebar"
 
 export default function DashboardLayout() {
