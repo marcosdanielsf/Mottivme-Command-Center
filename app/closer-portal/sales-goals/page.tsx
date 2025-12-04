@@ -23,7 +23,7 @@ export default function SalesGoals() {
       const diferenca = vendido - metaEsperada
       const metaDiaria = meta / diasTotal
       const metaRestante = meta - vendido
-      const mediaNecess aria = diasRestantes > 0 ? metaRestante / diasRestantes : 0
+      const mediaNecessaria = diasRestantes > 0 ? metaRestante / diasRestantes : 0
 
       return {
         percentualAlcancado,
@@ -32,7 +32,7 @@ export default function SalesGoals() {
         diferenca,
         metaDiaria,
         metaRestante,
-        mediaNecess aria,
+        mediaNecessaria,
         statusMeta: vendido >= metaEsperada ? 'above' : 'below'
       }
     }
@@ -194,7 +194,7 @@ export default function SalesGoals() {
               <div className="bg-white/10 rounded-lg p-6 backdrop-blur">
                 <p className="text-white/80 text-sm mb-2">Você precisa vender em média:</p>
                 <p className="text-white text-4xl font-bold mb-4">
-                  R$ {resultado.mediaNecess aria.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
+                  R$ {resultado.mediaNecessaria.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}
                 </p>
                 <p className="text-white/80 text-sm">
                   por dia útil nos próximos {resultado.diasRestantes} dias
