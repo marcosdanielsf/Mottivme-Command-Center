@@ -55,9 +55,32 @@ export default function CommandCenterHome() {
           />
         </div>
 
+        {/* Featured Dashboard */}
+        <div className="mb-12">
+          <div className="bg-gradient-to-r from-[#2563EB] to-[#3B82F6] rounded-2xl p-8 border-2 border-[#3B82F6]">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <BarChart3 className="w-10 h-10 text-white" />
+                  <h2 className="text-3xl font-bold text-white">Dashboard Mottivme Sales</h2>
+                </div>
+                <p className="text-white/90 text-lg mb-4">
+                  Dashboard completo com análise de leads, usuários, evolução, growth e rankings
+                </p>
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#2563EB] font-bold rounded-lg hover:bg-white/90 transition-all shadow-lg"
+                >
+                  Acessar Dashboard Principal →
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Systems Grid */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-white mb-6">Sistemas e Dashboards</h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Outros Sistemas e Dashboards</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <SystemCard
               title="Dashboard Comercial"
