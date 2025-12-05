@@ -1,265 +1,223 @@
-import Link from 'next/link'
-import { ArrowLeft, User, Bell, Shield, Database, Palette, Zap, Globe, Key } from 'lucide-react'
+"use client"
+
+import { useState } from "react"
+import { useInvoice } from "@/contexts/invoice-context"
+import { Sidebar } from "@/components/sidebar"
+import { Header } from "@/components/header"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Save, Building2 } from "lucide-react"
+import type { Company } from "@/lib/types"
+import { useToast } from "@/hooks/use-toast"
+import Image from "next/image"
 
 export default function SettingsPage() {
+  const { company, updateCompany } = useInvoice()
+  const { toast } = useToast()
+
+  const [logo, setLogo] = useState(company.logo)
+  const [name, setName] = useState(company.name)
+  const [taxId, setTaxId] = useState(company.taxId)
+  const [address, setAddress] = useState(company.address)
+  const [email, setEmail] = useState(company.email)
+  const [phone, setPhone] = useState(company.phone)
+  const [bankName, setBankName] = useState(company.bankDetails.bankName)
+  const [branch, setBranch] = useState(company.bankDetails.branch)
+  const [account, setAccount] = useState(company.bankDetails.account)
+  const [pix, setPix] = useState(company.bankDetails.pix)
+
+  const handleSave = () => {
+    const updatedCompany: Company = {
+      logo,
+      name,
+      taxId,
+      address,
+      email,
+      phone,
+      bankDetails: {
+        bankName,
+        branch,
+        account,
+        pix,
+      },
+    }
+
+    updateCompany(updatedCompany)
+    toast({
+      title: "Settings saved",
+      description: "Your company information has been updated successfully.",
+    })
+  }
+
   return (
-    <div className="min-h-screen bg-[#0B0F19]">
-      {/* Header */}
-      <header className="border-b border-[#2d3748] bg-[#0B0F19]/95 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="text-[#9CA3AF] hover:text-white transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Link>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 max-w-4xl mx-auto space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-white">Configurações</h1>
-                <p className="text-[#D1D5DB] mt-1">Gerencie as configurações do sistema</p>
+                <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+                <p className="mt-1 text-muted-foreground">Manage your company information</p>
               </div>
+              <Button size="lg" className="gap-2" onClick={handleSave}>
+                <Save className="h-5 w-5" />
+                Save Changes
+              </Button>
             </div>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-4 sticky top-24">
-              <nav className="space-y-2">
-                <SettingsNavItem
-                  icon={<User className="w-5 h-5" />}
-                  label="Perfil"
-                  active
-                />
-                <SettingsNavItem
-                  icon={<Bell className="w-5 h-5" />}
-                  label="Notificações"
-                />
-                <SettingsNavItem
-                  icon={<Shield className="w-5 h-5" />}
-                  label="Segurança"
-                />
-                <SettingsNavItem
-                  icon={<Database className="w-5 h-5" />}
-                  label="Integrações"
-                />
-                <SettingsNavItem
-                  icon={<Palette className="w-5 h-5" />}
-                  label="Aparência"
-                />
-                <SettingsNavItem
-                  icon={<Zap className="w-5 h-5" />}
-                  label="Automações"
-                />
-                <SettingsNavItem
-                  icon={<Globe className="w-5 h-5" />}
-                  label="Geral"
-                />
-                <SettingsNavItem
-                  icon={<Key className="w-5 h-5" />}
-                  label="API Keys"
-                />
-              </nav>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Perfil Section */}
-            <SettingsSection title="Informações do Perfil">
-              <div className="space-y-4">
-                <SettingField
-                  label="Nome Completo"
-                  value="Admin Mottivme"
-                  type="text"
-                />
-                <SettingField
-                  label="Email"
-                  value="admin@mottivme.com"
-                  type="email"
-                />
-                <SettingField
-                  label="Cargo"
-                  value="Administrador"
-                  type="text"
-                />
-                <SettingField
-                  label="Telefone"
-                  value="+55 (11) 99999-9999"
-                  type="tel"
-                />
+            {/* Company Info */}
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="rounded-full bg-primary/20 p-3">
+                  <Building2 className="h-6 w-6 text-primary" />
+                </div>
+                <h2 className="text-xl font-semibold text-foreground">Company Information</h2>
               </div>
-            </SettingsSection>
 
-            {/* Preferências */}
-            <SettingsSection title="Preferências">
-              <div className="space-y-4">
-                <SettingToggle
-                  label="Receber notificações por email"
-                  description="Receba atualizações importantes no seu email"
-                  enabled={true}
-                />
-                <SettingToggle
-                  label="Notificações push"
-                  description="Receba notificações em tempo real"
-                  enabled={true}
-                />
-                <SettingToggle
-                  label="Modo escuro"
-                  description="Interface em tema escuro (padrão)"
-                  enabled={true}
-                />
-                <SettingToggle
-                  label="Atualizações automáticas"
-                  description="Atualizar dados automaticamente"
-                  enabled={false}
-                />
-              </div>
-            </SettingsSection>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="logo">Company Logo URL</Label>
+                  <div className="flex gap-4 items-start">
+                    <Input
+                      id="logo"
+                      value={logo}
+                      onChange={(e) => setLogo(e.target.value)}
+                      placeholder="https://example.com/logo.png"
+                      className="flex-1"
+                    />
+                    {logo && (
+                      <div className="relative h-16 w-16 rounded-lg overflow-hidden border border-border">
+                        <Image src={logo || "/placeholder.svg"} alt="Company logo" fill className="object-cover" />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            {/* Integrações */}
-            <SettingsSection title="Integrações Ativas">
-              <div className="space-y-3">
-                <IntegrationCard
-                  name="Supabase"
-                  description="Banco de dados e autenticação"
-                  status="online"
-                />
-                <IntegrationCard
-                  name="N8N"
-                  description="Automação de workflows"
-                  status="online"
-                />
-                <IntegrationCard
-                  name="Vercel"
-                  description="Hosting e deployment"
-                  status="online"
-                />
-                <IntegrationCard
-                  name="OpenAI"
-                  description="Modelos de IA"
-                  status="online"
-                />
-              </div>
-            </SettingsSection>
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="company-name">
+                      Company Name <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="company-name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your Company Name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tax-id">Tax ID / VAT Number</Label>
+                    <Input
+                      id="tax-id"
+                      value={taxId}
+                      onChange={(e) => setTaxId(e.target.value)}
+                      placeholder="12.345.678/0001-90"
+                    />
+                  </div>
+                </div>
 
-            {/* Zona de Perigo */}
-            <SettingsSection title="Zona de Perigo" danger>
-              <div className="space-y-4">
-                <button className="w-full px-4 py-3 border-2 border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/10 transition-all font-medium">
-                  Limpar Cache do Sistema
-                </button>
-                <button className="w-full px-4 py-3 border-2 border-red-500/50 text-red-400 rounded-lg hover:bg-red-500/10 transition-all font-medium">
-                  Resetar Configurações
-                </button>
-                <button className="w-full px-4 py-3 bg-red-500/20 border-2 border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 transition-all font-medium">
-                  Excluir Conta
-                </button>
+                <div className="space-y-2">
+                  <Label htmlFor="address">
+                    Address <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="address"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="Street, City, State, ZIP"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">
+                      Email <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="contact@company.com"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">
+                      Phone <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+1 234 567 8900"
+                      required
+                    />
+                  </div>
+                </div>
               </div>
-            </SettingsSection>
+            </Card>
+
+            {/* Bank Details */}
+            <Card className="p-6">
+              <h2 className="text-xl font-semibold text-foreground mb-6">Bank Details</h2>
+              <div className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-name">Bank Name</Label>
+                    <Input
+                      id="bank-name"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      placeholder="Bank of America"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="branch">Branch</Label>
+                    <Input id="branch" value={branch} onChange={(e) => setBranch(e.target.value)} placeholder="0001" />
+                  </div>
+                </div>
+
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="account">Account Number</Label>
+                    <Input
+                      id="account"
+                      value={account}
+                      onChange={(e) => setAccount(e.target.value)}
+                      placeholder="123456-7"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pix">PIX Key</Label>
+                    <Input
+                      id="pix"
+                      value={pix}
+                      onChange={(e) => setPix(e.target.value)}
+                      placeholder="email@company.com"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
 
             {/* Save Button */}
-            <div className="flex gap-4">
-              <button className="flex-1 px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg font-semibold transition-all">
-                Salvar Alterações
-              </button>
-              <button className="px-6 py-3 border border-[#2d3748] text-[#9CA3AF] hover:text-white hover:border-[#3B82F6] rounded-lg font-semibold transition-all">
-                Cancelar
-              </button>
+            <div className="flex justify-end">
+              <Button size="lg" className="gap-2" onClick={handleSave}>
+                <Save className="h-5 w-5" />
+                Save Changes
+              </Button>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
-  )
-}
-
-function SettingsNavItem({ icon, label, active }: any) {
-  return (
-    <button
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-        active
-          ? 'bg-[#3B82F6]/20 text-[#3B82F6] border border-[#3B82F6]/50'
-          : 'text-[#9CA3AF] hover:bg-[#242937] hover:text-white'
-      }`}
-    >
-      {icon}
-      <span className="font-medium">{label}</span>
-    </button>
-  )
-}
-
-function SettingsSection({ title, children, danger }: any) {
-  return (
-    <div className={`bg-[#1a1f2e] border rounded-xl p-6 ${
-      danger ? 'border-red-500/50' : 'border-[#2d3748]'
-    }`}>
-      <h2 className={`text-xl font-bold mb-6 ${
-        danger ? 'text-red-400' : 'text-white'
-      }`}>
-        {title}
-      </h2>
-      {children}
-    </div>
-  )
-}
-
-function SettingField({ label, value, type }: any) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-[#9CA3AF] mb-2">
-        {label}
-      </label>
-      <input
-        type={type}
-        defaultValue={value}
-        className="w-full px-4 py-2 bg-[#242937] border border-[#2d3748] rounded-lg text-white focus:outline-none focus:border-[#3B82F6] transition-all"
-      />
-    </div>
-  )
-}
-
-function SettingToggle({ label, description, enabled }: any) {
-  return (
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <p className="text-white font-medium">{label}</p>
-        <p className="text-sm text-[#9CA3AF] mt-1">{description}</p>
-      </div>
-      <button
-        className={`relative w-12 h-6 rounded-full transition-all ${
-          enabled ? 'bg-[#3B82F6]' : 'bg-[#2d3748]'
-        }`}
-      >
-        <div
-          className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-            enabled ? 'left-7' : 'left-1'
-          }`}
-        />
-      </button>
-    </div>
-  )
-}
-
-function IntegrationCard({ name, description, status }: any) {
-  return (
-    <div className="flex items-center justify-between p-4 bg-[#242937] rounded-lg">
-      <div>
-        <h4 className="text-white font-medium">{name}</h4>
-        <p className="text-sm text-[#9CA3AF]">{description}</p>
-      </div>
-      <div className="flex items-center gap-2">
-        <div className={`w-2 h-2 rounded-full ${
-          status === 'online' ? 'bg-green-500' : 'bg-red-500'
-        } animate-pulse`} />
-        <span className="text-sm text-[#9CA3AF]">
-          {status === 'online' ? 'Online' : 'Offline'}
-        </span>
+        </main>
       </div>
     </div>
   )

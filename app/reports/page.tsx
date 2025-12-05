@@ -1,195 +1,471 @@
-import Link from 'next/link'
-import { ArrowLeft, FileText, Download, Calendar, TrendingUp, Users, DollarSign } from 'lucide-react'
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
+import { Sidebar } from "@/components/sidebar"
+import { Header } from "@/components/header"
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts"
+import { useInvoice } from "@/contexts/invoice-context"
+import { transactionService, type Transaction } from "@/lib/services/transaction-service"
+import { Download, TrendingUp, TrendingDown, DollarSign, FileText, Calendar } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+
+type TimeRange = "7d" | "30d" | "90d" | "1y" | "all"
 
 export default function ReportsPage() {
+  const { invoices, clients, loading: invoicesLoading } = useInvoice()
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [loading, setLoading] = useState(true)
+  const [timeRange, setTimeRange] = useState<TimeRange>("30d")
+  const { toast } = useToast()
+
+  const safeInvoices = invoices ?? []
+  const safeClients = clients ?? []
+
+  useEffect(() => {
+    loadTransactions()
+  }, [])
+
+  const loadTransactions = async () => {
+    try {
+      setLoading(true)
+      const data = await transactionService.getAll()
+      setTransactions(data ?? [])
+    } catch (error) {
+      console.error("[v0] Error loading transactions:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load transaction data",
+        variant: "destructive",
+      })
+      setTransactions([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getDateRange = (range: TimeRange) => {
+    const now = new Date()
+    const start = new Date()
+
+    switch (range) {
+      case "7d":
+        start.setDate(now.getDate() - 7)
+        break
+      case "30d":
+        start.setDate(now.getDate() - 30)
+        break
+      case "90d":
+        start.setDate(now.getDate() - 90)
+        break
+      case "1y":
+        start.setFullYear(now.getFullYear() - 1)
+        break
+      case "all":
+        start.setFullYear(2000)
+        break
+    }
+
+    return { start, end: now }
+  }
+
+  const filteredData = useMemo(() => {
+    const { start, end } = getDateRange(timeRange)
+
+    const filteredInvoices = safeInvoices.filter((inv) => {
+      const date = new Date(inv.date)
+      return date >= start && date <= end
+    })
+
+    const filteredTransactions = transactions.filter((txn) => {
+      const date = new Date(txn.date)
+      return date >= start && date <= end
+    })
+
+    return { invoices: filteredInvoices, transactions: filteredTransactions }
+  }, [safeInvoices, transactions, timeRange])
+
+  const stats = useMemo(() => {
+    const totalRevenue = filteredData.invoices
+      .filter((inv) => inv.status === "paid")
+      .reduce((sum, inv) => sum + (inv.totalAmount ?? 0), 0)
+
+    const totalIncome = filteredData.transactions
+      .filter((txn) => txn.type === "income")
+      .reduce((sum, txn) => sum + (txn.amount ?? 0), 0)
+
+    const totalExpenses = filteredData.transactions
+      .filter((txn) => txn.type === "expense")
+      .reduce((sum, txn) => sum + (txn.amount ?? 0), 0)
+
+    const netProfit = totalRevenue + totalIncome - totalExpenses
+
+    const pendingAmount = filteredData.invoices
+      .filter((inv) => inv.status === "pending" || inv.status === "overdue")
+      .reduce((sum, inv) => sum + (inv.amountDue ?? 0), 0)
+
+    return {
+      totalRevenue,
+      totalIncome,
+      totalExpenses,
+      netProfit,
+      pendingAmount,
+      totalInvoices: filteredData.invoices.length,
+      paidInvoices: filteredData.invoices.filter((inv) => inv.status === "paid").length,
+    }
+  }, [filteredData])
+
+  const monthlyRevenueData = useMemo(() => {
+    const monthlyData: { [key: string]: { revenue: number; expenses: number; profit: number } } = {}
+
+    filteredData.invoices
+      .filter((inv) => inv.status === "paid")
+      .forEach((inv) => {
+        const date = new Date(inv.date)
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+        if (!monthlyData[monthKey]) {
+          monthlyData[monthKey] = { revenue: 0, expenses: 0, profit: 0 }
+        }
+        monthlyData[monthKey].revenue += inv.totalAmount ?? 0
+      })
+
+    filteredData.transactions.forEach((txn) => {
+      const date = new Date(txn.date)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = { revenue: 0, expenses: 0, profit: 0 }
+      }
+      if (txn.type === "income") {
+        monthlyData[monthKey].revenue += txn.amount ?? 0
+      } else {
+        monthlyData[monthKey].expenses += txn.amount ?? 0
+      }
+    })
+
+    return Object.entries(monthlyData)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, data]) => ({
+        month: new Date(month + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+        revenue: data.revenue,
+        expenses: data.expenses,
+        profit: data.revenue - data.expenses,
+      }))
+  }, [filteredData])
+
+  const categoryExpenseData = useMemo(() => {
+    const categoryData: { [key: string]: number } = {}
+
+    filteredData.transactions
+      .filter((txn) => txn.type === "expense")
+      .forEach((txn) => {
+        const category = txn.category ?? "Other"
+        categoryData[category] = (categoryData[category] || 0) + (txn.amount ?? 0)
+      })
+
+    return Object.entries(categoryData)
+      .sort(([, a], [, b]) => b - a)
+      .map(([category, amount]) => ({ category, amount }))
+  }, [filteredData])
+
+  const clientRevenueData = useMemo(() => {
+    const clientData: { [key: string]: { name: string; revenue: number; invoices: number } } = {}
+
+    filteredData.invoices
+      .filter((inv) => inv.status === "paid" && inv.client)
+      .forEach((inv) => {
+        const clientId = inv.client?.id
+        if (!clientId) return
+        if (!clientData[clientId]) {
+          clientData[clientId] = { name: inv.client?.name ?? "Unknown Client", revenue: 0, invoices: 0 }
+        }
+        clientData[clientId].revenue += inv.totalAmount ?? 0
+        clientData[clientId].invoices += 1
+      })
+
+    return Object.values(clientData)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10)
+  }, [filteredData])
+
+  const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#14b8a6", "#f97316"]
+
+  const handleExportReport = () => {
+    const reportData = {
+      timeRange,
+      generatedAt: new Date().toISOString(),
+      stats,
+      monthlyRevenue: monthlyRevenueData,
+      categoryExpenses: categoryExpenseData,
+      clientRevenue: clientRevenueData,
+    }
+
+    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `financial-report-${timeRange}-${new Date().toISOString().split("T")[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    toast({
+      title: "Success",
+      description: "Report exported successfully",
+    })
+  }
+
+  if (loading || invoicesLoading) {
+    return (
+      <div className="flex h-screen overflow-hidden">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto flex items-center justify-center">
+            <div className="text-center">
+              <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading reports...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-[#0B0F19]">
-      {/* Header */}
-      <header className="border-b border-[#2d3748] bg-[#0B0F19]/95 backdrop-blur sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/"
-                className="text-[#9CA3AF] hover:text-white transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </Link>
+    <div className="flex h-screen overflow-hidden">
+      <Sidebar />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-white">Relatórios</h1>
-                <p className="text-[#D1D5DB] mt-1">Análises e relatórios do sistema</p>
+                <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
+                <p className="mt-1 text-muted-foreground">Comprehensive financial insights and trends</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Select value={timeRange} onValueChange={(value) => setTimeRange(value as TimeRange)}>
+                  <SelectTrigger className="w-[180px]">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7d">Last 7 Days</SelectItem>
+                    <SelectItem value="30d">Last 30 Days</SelectItem>
+                    <SelectItem value="90d">Last 90 Days</SelectItem>
+                    <SelectItem value="1y">Last Year</SelectItem>
+                    <SelectItem value="all">All Time</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button onClick={handleExportReport} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Export Report
+                </Button>
               </div>
             </div>
-            <button className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-lg font-medium transition-all flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Exportar Todos
-            </button>
-          </div>
-        </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-          <StatCard
-            title="Relatórios Gerados"
-            value="127"
-            trend="+12 este mês"
-            icon={<FileText className="w-6 h-6" />}
-          />
-          <StatCard
-            title="Total de Vendas"
-            value="R$ 2.4M"
-            trend="+18% vs mês anterior"
-            icon={<DollarSign className="w-6 h-6" />}
-          />
-          <StatCard
-            title="Taxa de Conversão"
-            value="34.5%"
-            trend="+2.3%"
-            icon={<TrendingUp className="w-6 h-6" />}
-          />
-          <StatCard
-            title="Leads Ativos"
-            value="1,284"
-            trend="+156"
-            icon={<Users className="w-6 h-6" />}
-          />
-        </div>
+            {/* Key Metrics */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card className="p-6 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                    <p className="mt-2 text-3xl font-bold text-foreground">
+                      ${(stats.totalRevenue ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-primary/20 p-3">
+                    <DollarSign className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">{stats.paidInvoices} paid invoices</p>
+              </Card>
 
-        {/* Relatórios Disponíveis */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">Relatórios Disponíveis</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ReportCard
-              title="Relatório de Vendas Mensal"
-              description="Análise completa das vendas do mês atual"
-              lastUpdated="Há 2 horas"
-              category="Vendas"
-            />
+              <Card className="p-6 bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Expenses</p>
+                    <p className="mt-2 text-3xl font-bold text-foreground">
+                      ${(stats.totalExpenses ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-destructive/20 p-3">
+                    <TrendingDown className="h-6 w-6 text-destructive" />
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">Operating costs</p>
+              </Card>
 
-            <ReportCard
-              title="Performance de Leads"
-              description="Conversão e qualificação de leads"
-              lastUpdated="Há 5 horas"
-              category="Marketing"
-            />
+              <Card className="p-6 bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Net Profit</p>
+                    <p
+                      className={`mt-2 text-3xl font-bold ${(stats.netProfit ?? 0) >= 0 ? "text-success" : "text-destructive"}`}
+                    >
+                      ${Math.abs(stats.netProfit ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-success/20 p-3">
+                    <TrendingUp className="h-6 w-6 text-success" />
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  {(stats.netProfit ?? 0) >= 0 ? "Profitable" : "Loss"} period
+                </p>
+              </Card>
 
-            <ReportCard
-              title="Custos de IA - N8N"
-              description="Custos detalhados por workflow e modelo"
-              lastUpdated="Há 1 hora"
-              category="Operações"
-            />
+              <Card className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Pending Amount</p>
+                    <p className="mt-2 text-3xl font-bold text-foreground">
+                      ${(stats.pendingAmount ?? 0).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-warning/20 p-3">
+                    <FileText className="h-6 w-6 text-warning" />
+                  </div>
+                </div>
+                <p className="mt-4 text-sm text-muted-foreground">Awaiting payment</p>
+              </Card>
+            </div>
 
-            <ReportCard
-              title="Ranking de Closers"
-              description="Performance individual dos vendedores"
-              lastUpdated="Há 3 horas"
-              category="Vendas"
-            />
+            {/* Revenue vs Expenses Chart */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Revenue vs Expenses Over Time</h3>
+              {monthlyRevenueData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart data={monthlyRevenueData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="revenue" fill="#10b981" name="Revenue" />
+                    <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                  No data available for selected period
+                </div>
+              )}
+            </Card>
 
-            <ReportCard
-              title="Análise de Churn"
-              description="Taxa de cancelamento e retenção"
-              lastUpdated="Ontem"
-              category="Financeiro"
-            />
+            {/* Profit Trend */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Profit Trend</h3>
+              {monthlyRevenueData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={monthlyRevenueData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
+                    <YAxis stroke="hsl(var(--muted-foreground))" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Line type="monotone" dataKey="profit" stroke="#3b82f6" strokeWidth={3} name="Net Profit" />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                  No data available for selected period
+                </div>
+              )}
+            </Card>
 
-            <ReportCard
-              title="ROI por Canal"
-              description="Retorno de investimento por fonte de lead"
-              lastUpdated="Há 6 horas"
-              category="Marketing"
-            />
-          </div>
-        </div>
+            {/* Bottom Row */}
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Expense by Category */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Expenses by Category</h3>
+                {categoryExpenseData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={categoryExpenseData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="amount"
+                      >
+                        {categoryExpenseData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                    No expense data available
+                  </div>
+                )}
+              </Card>
 
-        {/* Relatórios Agendados */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">Relatórios Agendados</h2>
-          <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-6">
-            <div className="space-y-4">
-              <ScheduledReport
-                name="Relatório Semanal de Vendas"
-                frequency="Toda segunda-feira, 08:00"
-                recipients="time@mottivme.com"
-              />
-              <ScheduledReport
-                name="Custos Mensais de IA"
-                frequency="Todo dia 1, 09:00"
-                recipients="financeiro@mottivme.com"
-              />
-              <ScheduledReport
-                name="Performance de Equipe"
-                frequency="Toda sexta-feira, 17:00"
-                recipients="gestao@mottivme.com"
-              />
+              {/* Top Clients */}
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4">Top Clients by Revenue</h3>
+                {clientRevenueData.length > 0 ? (
+                  <div className="space-y-4">
+                    {clientRevenueData.map((client, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 rounded-lg border border-border"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-foreground">{client.name}</p>
+                            <p className="text-sm text-muted-foreground">{client.invoices} invoices</p>
+                          </div>
+                        </div>
+                        <p className="font-semibold text-foreground">${(client.revenue ?? 0).toLocaleString()}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-muted-foreground">No client data available</div>
+                )}
+              </Card>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
-  )
-}
-
-function StatCard({ title, value, trend, icon }: any) {
-  return (
-    <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div className="text-[#3B82F6]">{icon}</div>
+        </main>
       </div>
-      <div>
-        <p className="text-[#9CA3AF] text-sm font-medium mb-1">{title}</p>
-        <p className="text-white text-3xl font-bold mb-2">{value}</p>
-        <p className="text-[#3B82F6] text-sm">{trend}</p>
-      </div>
-    </div>
-  )
-}
-
-function ReportCard({ title, description, lastUpdated, category }: any) {
-  return (
-    <div className="bg-[#1a1f2e] border border-[#2d3748] rounded-xl p-6 hover:bg-[#242937] hover:border-[#3B82F6] transition-all cursor-pointer">
-      <div className="flex items-start justify-between mb-4">
-        <FileText className="w-6 h-6 text-[#3B82F6]" />
-        <span className="px-2 py-1 bg-[#3B82F6]/20 text-[#3B82F6] text-xs rounded font-medium">
-          {category}
-        </span>
-      </div>
-      <h3 className="text-white text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-[#9CA3AF] text-sm mb-4">{description}</p>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[#9CA3AF] text-xs">
-          <Calendar className="w-4 h-4" />
-          <span>{lastUpdated}</span>
-        </div>
-        <button className="text-[#3B82F6] text-sm font-medium hover:underline flex items-center gap-1">
-          <Download className="w-4 h-4" />
-          Baixar
-        </button>
-      </div>
-    </div>
-  )
-}
-
-function ScheduledReport({ name, frequency, recipients }: any) {
-  return (
-    <div className="flex items-center justify-between p-4 bg-[#242937] rounded-lg">
-      <div className="flex-1">
-        <h4 className="text-white font-medium mb-1">{name}</h4>
-        <div className="flex items-center gap-4 text-sm text-[#9CA3AF]">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-4 h-4" />
-            {frequency}
-          </span>
-          <span>→ {recipients}</span>
-        </div>
-      </div>
-      <button className="text-[#3B82F6] text-sm hover:underline">
-        Editar
-      </button>
     </div>
   )
 }
