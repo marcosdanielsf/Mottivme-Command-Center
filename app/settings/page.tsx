@@ -56,7 +56,7 @@ export default function SettingsPage() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
           <div className="p-6 max-w-4xl mx-auto space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">

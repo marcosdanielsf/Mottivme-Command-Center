@@ -119,7 +119,7 @@ export default function HistoryPage() {
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center">
+          <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 flex items-center justify-center">
             <div className="text-center">
               <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Loading invoices...</p>
@@ -135,8 +135,8 @@ export default function HistoryPage() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+          <div className="p-4 lg:p-6 space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">Invoice History</h1>
@@ -366,7 +366,7 @@ export default function HistoryPage() {
       </div>
 
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[95vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Invoice Preview</span>

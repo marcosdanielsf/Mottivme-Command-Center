@@ -10,7 +10,12 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Invoice Pro - Professional Invoice Generator",
   description: "Create beautiful, professional invoices in minutes",
-    generator: 'v0.app'
+  generator: 'v0.app',
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+  },
 }
 
 export default function RootLayout({

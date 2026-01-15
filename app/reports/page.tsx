@@ -237,7 +237,7 @@ export default function ReportsPage() {
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center">
+          <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 flex items-center justify-center">
             <div className="text-center">
               <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Loading reports...</p>
@@ -253,7 +253,7 @@ export default function ReportsPage() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
           <div className="p-6 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">

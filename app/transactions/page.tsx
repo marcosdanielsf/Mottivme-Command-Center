@@ -107,7 +107,7 @@ export default function TransactionsPage() {
         <Sidebar />
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
-          <main className="flex-1 overflow-y-auto flex items-center justify-center">
+          <main className="flex-1 overflow-y-auto pt-16 lg:pt-0 flex items-center justify-center">
             <div className="text-center">
               <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
               <p className="text-muted-foreground">Loading transactions...</p>
@@ -123,8 +123,8 @@ export default function TransactionsPage() {
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+          <div className="p-4 lg:p-6 space-y-6">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
@@ -138,7 +138,7 @@ export default function TransactionsPage() {
                     Add Transaction
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl w-[95vw]">
                   <DialogHeader>
                     <DialogTitle>Add New Transaction</DialogTitle>
                   </DialogHeader>
