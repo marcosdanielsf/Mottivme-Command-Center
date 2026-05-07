@@ -6,7 +6,7 @@ import type { Invoice } from "@/lib/types"
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import jsPDF from "jspdf"
-import html2canvas from "html2canvas"
+import html2canvas from "html2canvas-pro"
 
 interface PDFGeneratorProps {
   invoice: Invoice
@@ -24,14 +24,25 @@ export function PDFGenerator({ invoice }: PDFGeneratorProps) {
         throw new Error("Invoice preview element not found in DOM")
       }
 
+      const TARGET_WIDTH_PX = 896
+
       const canvas = await html2canvas(node, {
         scale: 2,
         backgroundColor: "#ffffff",
         useCORS: true,
         allowTaint: false,
         logging: false,
-        windowWidth: node.scrollWidth,
-        windowHeight: node.scrollHeight,
+        width: TARGET_WIDTH_PX,
+        windowWidth: TARGET_WIDTH_PX,
+        onclone: (clonedDoc) => {
+          const cloned = clonedDoc.getElementById("invoice-preview")
+          if (cloned) {
+            ;(cloned as HTMLElement).style.width = `${TARGET_WIDTH_PX}px`
+            ;(cloned as HTMLElement).style.maxWidth = `${TARGET_WIDTH_PX}px`
+            ;(cloned as HTMLElement).style.minWidth = `${TARGET_WIDTH_PX}px`
+            ;(cloned as HTMLElement).style.margin = "0"
+          }
+        },
       })
 
       const imgData = canvas.toDataURL("image/png", 1.0)
