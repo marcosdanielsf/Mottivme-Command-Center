@@ -68,7 +68,7 @@ export default function NewInvoicePage() {
       </div>
 
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto w-[95vw]">
+        <DialogContent className="sm:max-w-[1100px] max-h-[90vh] overflow-y-auto w-[95vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between gap-4">
               <span>Invoice Preview</span>
