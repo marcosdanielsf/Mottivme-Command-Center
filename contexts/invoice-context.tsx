@@ -6,6 +6,7 @@ import type { Invoice, Client, Company, InvoiceStatus } from "@/lib/types"
 import { DEFAULT_COMPANY } from "@/lib/default-data"
 import { invoiceService } from "@/lib/services/invoice-service"
 import { clientService } from "@/lib/services/client-service"
+import { storage } from "@/lib/storage"
 import { useToast } from "@/hooks/use-toast"
 
 interface InvoiceContextType {
@@ -51,7 +52,9 @@ export function InvoiceProvider({ children }: { children: React.ReactNode }) {
 
       setInvoices(invoicesData || [])
       setClients(clientsData || [])
-      setCompany(DEFAULT_COMPANY)
+
+      const storedCompany = storage.getCompany()
+      setCompany(storedCompany || DEFAULT_COMPANY)
     } catch (error) {
       console.error("[v0] Error loading data:", error)
       toast({
@@ -203,6 +206,7 @@ export function InvoiceProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateCompany = (newCompany: Company) => {
+    storage.saveCompany(newCompany)
     setCompany(newCompany)
   }
 
